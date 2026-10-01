@@ -287,9 +287,9 @@ SW(config-if)# glbp 30 timers msec 200 msec 750
 SW(config-if)# glbp 30 timers redirect 600 7200
 ```
 
-*The redirect-time specifies how long the AVG waits before redirecting hosts to a different virtual MAC address when a forwarding path changes. The timeout specifies how long the old virtual MAC address remains valid after the redirect. During this period, another AVF can continue forwarding traffic sent to the old virtual MAC address, allowing hosts that still have the old MAC address in their ARP cache to continue sending traffic without disruption*
+- The redirect-time specifies how long the AVG waits before redirecting hosts to a different virtual MAC address when a forwarding path changes. The timeout specifies how long the old virtual MAC address remains valid after the redirect. During this period, another AVF can continue forwarding traffic sent to the old virtual MAC address, allowing hosts that still have the old MAC address in their ARP cache to continue sending traffic without disruption
 
-*When a change occurs in the forwarding path, the AVG waits for the configured redirect timer before redirecting the host to a new virtual MAC address. After the redirect, the old virtual MAC address remains valid for the configured timeout period, allowing another AVF to continue forwarding traffic destined for the old MAC address while hosts that still have the old MAC address in their ARP cache transition to the new one. The timeout is not used to apply the new MAC address; it is used to keep the old MAC address valid temporarily to prevent traffic disruption.*
+- When a change occurs in the forwarding path, the AVG waits for the configured redirect timer before redirecting the host to a new virtual MAC address. After the redirect, the old virtual MAC address remains valid for the configured timeout period, allowing another AVF to continue forwarding traffic destined for the old MAC address while hosts that still have the old MAC address in their ARP cache transition to the new one. The timeout is not used to apply the new MAC address; it is used to keep the old MAC address valid temporarily to prevent traffic disruption.
 
 ```cisco
 ! Authentication options
