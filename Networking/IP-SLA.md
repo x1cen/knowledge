@@ -1,7 +1,5 @@
 # IP Service Level Agreement (IP SLA)
 
-**A Practical Study & Reference Guide**
-
 ## 1. What exactly is IP SLA?
 
 IP SLA is basically your router's way of actively checking if the network is healthy. Instead of waiting for the phone to ring because the internet is down, the router sends out its own test traffic (like pings or TCP connections) to see if a destination is actually reachable and performing well.
