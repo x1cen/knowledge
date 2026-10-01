@@ -23,7 +23,6 @@ Router(config)# ip access-list extended MATCH_INFECTED_PC
 Router(config-ext-nacl)# permit ip host 192.168.10.99 host 192.168.10.50
 Router(config-ext-nacl)# permit ip host 192.168.10.50 host 192.168.10.99
 Router(config-ext-nacl)# exit
-
 ```
 
 ### Step 2: Create the VACL and apply the Drop action
@@ -35,7 +34,6 @@ Router(config)# vlan access-map SECURE_VLAN10 10
 Router(config-access-map)# match ip address MATCH_INFECTED_PC
 Router(config-access-map)# action drop
 Router(config-access-map)# exit
-
 ```
 
 ### Step 3: Prevent the Implicit Deny (Crucial)
@@ -46,7 +44,6 @@ We create a new sequence (Sequence 20). Because we do not provide a `match` stat
 Router(config)# vlan access-map SECURE_VLAN10 20
 Router(config-access-map)# action forward
 Router(config-access-map)# exit
-
 ```
 
 ### Step 4: Apply the VACL to the VLAN
@@ -55,7 +52,6 @@ Finally, we apply this security map to VLAN 10 globally.
 
 ```
 Router(config)# vlan filter SECURE_VLAN10 vlan-list 10
-
 ```
 
 ## 3. Configuration Scenario: MAC-Based VACL
@@ -68,7 +64,6 @@ Sometimes you need to filter non-IP traffic (like legacy IPX) or you simply want
 Router(config)# mac access-list extended MATCH_MAC_ADDRESS
 Router(config-ext-macl)# permit host 0000.1111.2222 any
 Router(config-ext-macl)# exit
-
 ```
 
 ### Step 2: Apply it in the VACL
