@@ -284,6 +284,10 @@ SW(config-if)# glbp 30 timers 3 10
 SW(config-if)# glbp 30 timers msec 200 msec 750
 
 ! Redirect Timers: 600s wait before redirecting, 7200s valid for old MAC
+! Specifies how long the AVG waits before redirecting hosts to a different virtual MAC address when the forwarding path changes.
+! The timeout specifies how long the old virtual MAC address remains valid after the redirect.
+! During this period, another AVF can continue forwarding traffic destined for the old virtual MAC address.
+! This allows hosts that still have the old MAC address in their ARP cache to continue sending traffic without disruption.
 SW(config-if)# glbp 30 timers redirect 600 7200
 
 ! Authentication options
