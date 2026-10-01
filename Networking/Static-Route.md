@@ -209,26 +209,22 @@ Use these essential commands to verify your static routing configuration.
 
 ```
 Router# show ip route static
-
 ```
 
 **View the detailed routing process for a specific IP (Shows exactly how the router performs the recursive lookup for this destination):**
 
 ```
 Router# show ip route 10.50.0.5
-
 ```
 
 **Check which static routes are actively using Track Objects, and see if their track status is currently UP or DOWN:**
 
 ```
 Router# show ip route track-table
-
 ```
 
 **Check the IPv6 routing table specifically for static routes:**
 
 ```
 Router# show ipv6 route static
-
 ```
