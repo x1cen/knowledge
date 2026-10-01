@@ -41,7 +41,6 @@ If the router learns about multiple paths to the exact same destination from the
 
 ```
 Router(config)# ip route 10.50.0.0 255.255.255.0 192.168.1.2
-
 ```
 
 **Floating Static Route (Backup Route):**
@@ -49,7 +48,6 @@ Change the AD (e.g., to 130) so it hides in the background and only takes over i
 
 ```
 Router(config)# ip route 10.50.0.0 255.255.255.0 192.168.1.3 130
-
 ```
 
 **IPv6 Static Route:**
@@ -57,7 +55,6 @@ Router(config)# ip route 10.50.0.0 255.255.255.0 192.168.1.3 130
 
 ```
 Router(config)# ipv6 route 2001:DB8:ACAD::/64 2001:DB8:CAFE::2
-
 ```
 
 ## 4. Next-Hop IP vs. Exit Interface (The P2P vs Ethernet Rule)
@@ -76,7 +73,6 @@ Can we use the Exit Interface on Point-to-Point links like Serial interfaces or 
 ```
 ! Perfectly fine on a P2P link
 Router(config)# ip route 10.0.0.0 255.255.255.0 Serial0/0/0
-
 ```
 
 ## 5. What exactly is Proxy ARP?
@@ -107,7 +103,6 @@ Proxy ARP is enabled by default on Cisco routers! It is highly recommended to di
 ```
 Router(config)# interface GigabitEthernet0/0
 Router(config-if)# no ip proxy-arp
-
 ```
 
 ## 6. What is Recursive Routing (Recursive Lookup)?
@@ -134,14 +129,12 @@ Router(config-ip-sla)# icmp-echo 8.8.8.8
 Router(config-ip-sla-echo)# frequency 10
 Router(config-ip-sla-echo)# exit
 Router(config)# ip sla schedule 1 life forever start-time now
-
 ```
 
 **Step 2: Create the Track Object (The Monitor)**
 
 ```
 Router(config)# track 10 ip sla 1 reachability
-
 ```
 
 **Step 3: Tie the Track Object to the Static Route**
@@ -152,7 +145,6 @@ Router(config)# ip route 0.0.0.0 0.0.0.0 8.8.8.8 track 10
 
 ! Backup route (Floating Static Route with AD 10)
 Router(config)# ip route 0.0.0.0 0.0.0.0 4.2.2.4 10
-
 ```
 
 ## 8. The Null0 Route (The Blackhole)
@@ -168,7 +160,6 @@ Router(config)# ip route 0.0.0.0 0.0.0.0 4.2.2.4 10
 ```
 ! Blackhole all traffic to this subnet
 Router(config)# ip route 172.16.99.0 255.255.255.0 Null0
-
 ```
 
 ## 9. Load Balancing with Static Routes (ECMP)
@@ -183,7 +174,6 @@ If you have two internet links and want to use BOTH of them simultaneously (Acti
 ! Both routes have the default AD of 1. Both will be active.
 Router(config)# ip route 0.0.0.0 0.0.0.0 8.8.8.8
 Router(config)# ip route 0.0.0.0 0.0.0.0 4.2.2.4
-
 ```
 
 ### How does CEF handle the Load Balancing?
@@ -209,7 +199,6 @@ Router(config-if)# ip load-sharing per-packet
 ! Revert to Per-Destination (Default and Recommended)
 Router(config)# interface GigabitEthernet0/0
 Router(config-if)# ip load-sharing per-destination
-
 ```
 
 ## 10. Verification & Show Commands
