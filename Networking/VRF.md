@@ -1,5 +1,4 @@
 # Virtual Routing and Forwarding (VRF)
-**Master Study & Reference Guide**
 
 ## 1. What is VRF?
 
