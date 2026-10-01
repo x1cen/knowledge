@@ -14,7 +14,6 @@ And this is why FHRP is especially important in a VLAN environment: having two r
 
 The entire FHRP process is based on the use of a **Virtual MAC address**. In practice, when you configure a virtual IP address as the default gateway, a host sends an **ARP request** for that virtual IP. Within the FHRP group, the virtual IP is associated with a specific router, which is the **Active** router, and that router is responsible for replying to the ARP request with the corresponding Virtual MAC address. The host then uses this Virtual MAC as the destination MAC when sending traffic to the default gateway. **GLBP** works slightly differently because it provides load balancing by design: each participating router can have its own Virtual MAC address, and the Active Virtual Gateway (AVG) distributes these Virtual MAC addresses among the hosts. In contrast, **HSRP and VRRP** normally use a single Virtual MAC address for the FHRP group, which is actively owned and used by the current Active/Master router.
 
----
 ## HSRP - Host Standby Router Protocol
 
 **HSRP (Hot Standby Router Protocol)** is a Cisco proprietary FHRP that provides **default gateway redundancy** by using a virtual IP and MAC address shared between routers. One router is **Active**, while another acts as **Standby** and takes over if the Active router fails.
@@ -276,10 +275,6 @@ VRRP has two main versions. VRRPv2 was designed for IPv4 and is defined in RFC 3
 | Multicast (IPv4) | `224.0.0.18`            | `224.0.0.18`                            |
 | Authentication   | Supported               | Removed from the protocol specification |
 | Main Purpose     | IPv4 gateway redundancy | IPv4/IPv6 gateway redundancy            |
-
----
-
-
 #### VRRPv3 Setup
 
 ```cisco
