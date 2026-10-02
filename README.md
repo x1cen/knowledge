@@ -26,3 +26,4 @@ CCNP-level Cisco networking notes: theory, design rules, and step-by-step config
 - [VRF - Virtual Routing and Forwarding](Networking/VRF/README.md)
 - [Private VLAN - PVLAN](Networking/Private%20VLAN/README.md)
 - [VACL - VLAN Access Map](Networking/VACL/README.md)
+- [NetFlow - NetFlow and Flexible NetFlow (FNF)](Networking/NetFlow/README.md)
