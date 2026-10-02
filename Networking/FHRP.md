@@ -3,18 +3,30 @@
 **FHRP** is a networking mechanism designed to provide **default-gateway redundancy**.
 The concept is straightforward: if the router acting as the primary default gateway fails, a backup router seamlessly takes over. **The hosts on the network do not need to change their default gateway IP address.**
 
-> 💡 **Why is FHRP critical in VLANs?**
+> [Note] **Why is FHRP critical in VLANs?**
 > Having multiple redundant physical routers is useless if client hosts are hardcoded to rely on a single physical router's IP as their gateway. FHRP solves this by virtualizing the gateway.
 >
-> 📌 **Note on Stacking:** If you can physically stack the gateway switches (making them operate as one single logical device), you can skip FHRP altogether.
+> **Note on Stacking:** If you can physically stack the gateway switches (making them operate as one single logical device), you can skip FHRP altogether.
 
 ### Quick Protocol Comparison
 
 | Protocol | Abbreviation | Vendor | Versions / Standards | 
- | ----- | ----- | ----- | ----- | 
+| ----- | ----- | ----- | ----- | 
 | **Hot Standby Router Protocol** | **HSRP** | Cisco | v1, v2 | 
 | **Virtual Router Redundancy Protocol** | **VRRP** | IETF | v2 (**RFC 3768**), v3 (**RFC 5798**) | 
 | **Gateway Load Balancing Protocol** | **GLBP** | Cisco | GLBP | 
+
+### Protocol Specifications (Under the Hood)
+How do these routers talk to each other to know who is alive? They send Hello packets to specific Multicast IPs.
+
+| Protocol | Multicast IP (IPv4) | Transport Protocol & Port | Default Timers (Hello / Hold) |
+| ----- | ----- | ----- | ----- |
+| **HSRP v1** | 224.0.0.2 | UDP Port 1985 | 3 seconds / 10 seconds |
+| **HSRP v2** | 224.0.0.102 | UDP Port 1985 | 3 seconds / 10 seconds |
+| **VRRP (v2/v3)** | 224.0.0.18 | IP Protocol 112 (Direct IP) | 1 second / ~3.6 seconds |
+| **GLBP** | 224.0.0.102 | UDP Port 3222 | 3 seconds / 10 seconds |
+
+*(Note: VRRP does not use TCP or UDP at all. It runs directly on top of IP using protocol number 112).*
 
 ## How Does FHRP Work?
 
@@ -30,7 +42,20 @@ The entire FHRP process relies on sharing a **Virtual IP** and a **Virtual MAC a
 
 * **GLBP** provides load balancing by assigning **different** Virtual MAC addresses to different hosts, distributing the traffic across multiple routers.
 
----
+## Advanced Design Rules & Group Numbers
+
+Before jumping into configuration, it is crucial to understand how FHRP Group Numbers and Virtual IPs work:
+
+**1. Identical Configurations Required:**
+For two routers to form an FHRP relationship, the **Virtual IP Address** and the **Group Number** MUST be absolutely identical on both devices.
+
+**2. Group Numbers are Locally Significant per Interface:**
+The group number (e.g., `standby 10`) is only significant to that specific interface/broadcast domain. This means you can reuse the exact same group number on different interfaces without conflict.
+*Example: You can use `standby 10` on VLAN 10, and also use `standby 10` on VLAN 20. The generated MAC addresses will be the same, but because they exist in completely isolated Layer 2 domains, they will never collide.*
+
+**3. Multiple FHRP Groups on a SINGLE Interface (Manual Load Balancing):**
+You are not restricted to one FHRP group per interface! You can configure multiple groups (e.g., `standby 1` and `standby 2`) under the exact same VLAN.
+*Why do this?* It is the classic way to achieve load balancing with HSRP/VRRP. You make Router A Active for Group 1, and Router B Active for Group 2. You then point half of your PCs to Group 1's Virtual IP, and the other half to Group 2's Virtual IP.
 
 ## 1. HSRP (Hot Standby Router Protocol)
 
@@ -39,7 +64,7 @@ HSRP is a Cisco-proprietary protocol. One router acts as **Active** (handles tra
 ### HSRP States Table
 
 | State | Description | 
- | ----- | ----- | 
+| ----- | ----- | 
 | **Initial** | HSRP is not running or the interface is down. | 
 | **Learn** | Waiting to hear from the Active router. Has not yet determined the Virtual IP. | 
 | **Listen** | Knows the Virtual IP, listens for Hellos, but is neither Active nor Standby. | 
@@ -50,13 +75,17 @@ HSRP is a Cisco-proprietary protocol. One router acts as **Active** (handles tra
 * **Virtual MAC Format (v1):** `0000.0C07.ACXX` (XX = HSRP group in Hex)
 * **Virtual MAC Format (v2):** `0000.0C9F.FXXX` (XXX = HSRP group in Hex)
 
+### MAC Management & Failover in HSRP
+
+The Active router owns and uses the single Virtual MAC address. If the Active router fails, the Standby router instantly takes over. To ensure the downstream Layer 2 switches know about this physical change, the new Active router broadcasts a **Gratuitous ARP (GARP)**. This GARP forces all connected switches to instantly update their MAC address tables, redirecting traffic to the new physical port.
+
 ### HSRP Configuration Examples
 
 For these examples, we will use **HSRP Group 10** on **VLAN 10**.
 
 **1. Basic Setup & Version:**
 
-```cisco
+```
 ! Enter interface configuration
 SW(config)# interface Vlan 10
 
@@ -75,7 +104,7 @@ SW(config-if)# standby 10 mac-address 0000.1111.2222
 **2. Priority & Preemption:**
 *Default priority is 100. Highest becomes Active. Preemption is disabled by default.*
 
-```cisco
+```
 ! Set priority to 110 (so this router becomes Active)
 SW(config-if)# standby 10 priority 110
 
@@ -89,7 +118,7 @@ SW(config-if)# standby 10 preempt delay minimum 30 reload 60
 **3. Timers & Authentication:**
 *Default Hellos are 3s, Hold time is 10s.*
 
-```cisco
+```
 ! Change timers to 5s Hello and 15s Hold
 SW(config-if)# standby 10 timers 5 15
 ! Or use millisecond timers
@@ -99,13 +128,11 @@ SW(config-if)# standby 10 timers msec 200 msec 750
 SW(config-if)# standby 10 authentication text MYSECRET
 ! Configure MD5 authentication using a key-string
 SW(config-if)# standby 10 authentication md5 key-string Cisco123!
-! Configure MD5 authentication using a key-chain
-SW(config-if)# standby 10 authentication md5 key-chain MYCHAIN
 ```
 
 **4. Track Objects:**
 
-```cisco
+```
 ! If tracked object 1 (e.g., a WAN link) goes down, reduce HSRP priority by 20
 SW(config-if)# standby 10 track 1 decrement 20
 
@@ -115,15 +142,10 @@ SW(config-if)# standby 10 track 1 shutdown
 
 **5. Verification:**
 
-```cisco
+```
 SW# show standby
 SW# show standby brief
-SW# show standby Vlan 10
-SW# show standby neighbors
-SW# show standby delay
 ```
-
----
 
 ## 2. VRRP (Virtual Router Redundancy Protocol)
 
@@ -132,12 +154,16 @@ VRRP is an open-standard protocol. It uses a **Master** router (forwards traffic
 ### VRRP States Table
 
 | State | Description | 
- | ----- | ----- | 
+| ----- | ----- | 
 | **Initialize** | Waiting for a startup event or for the interface to come up. | 
 | **Backup** | Monitors the Master router. Ready to transition to Master if it fails. | 
 | **Master** | Actively forwards packets sent to the Virtual MAC and sends advertisements. | 
 
 * **Virtual MAC Format:** `0000.5E00.01XX` (XX = VRRP group in Hex).
+
+### MAC Management & Failover in VRRP
+
+Similar to HSRP, the Master router holds the single Virtual MAC address. Upon failure, the Backup router transitions to the Master state, assumes the exact same Virtual MAC, and immediately sends a **Gratuitous ARP (GARP)** out to the network. This ensures all switches instantly map the Virtual MAC to the new Master router's physical port.
 
 ### VRRP Configuration Examples
 
@@ -146,13 +172,11 @@ For these examples, we will use **VRRP Group 20** on **VLAN 20**.
 **1. Basic Setup & Election:**
 *Preemption is ON by default in VRRP. Default priority is 100.*
 
-```cisco
+```
 SW(config)# interface Vlan 20
 
 ! Assign the Virtual IP 
 SW(config-if)# vrrp 20 ip 10.0.20.254
-! (Optional) Assign secondary Virtual IP
-SW(config-if)# vrrp 20 ip 10.0.20.253 secondary
 
 ! Set priority to 150 (Highest becomes Master)
 SW(config-if)# vrrp 20 priority 150
@@ -162,27 +186,23 @@ SW(config-if)# vrrp 20 preempt delay minimum 30
 ```
 
 **2. Timers, Tracking & Authentication:**
-*Hold time in VRRP is calculated automatically:* $3 \times (\text{hello-interval}) + \frac{256 - \text{priority}}{256}$
+*Default Hello is 1s. Hold time is calculated automatically based on priority and hello time.*
 
-```cisco
+```
 ! Set advertisement interval to 2 seconds (or use msec)
 SW(config-if)# vrrp 20 timers advertise 2
-SW(config-if)# vrrp 20 timers advertise msec 500
 
 ! Allow Backup routers to automatically learn the timer from the Master router
 SW(config-if)# vrrp 20 timers learn
 
 ! Track an object and decrement priority by 60 if it fails
 SW(config-if)# vrrp 20 track 5 decrement 60
-
-! VRRPv2 Authentication (Text-based)
-SW(config-if)# vrrp 20 authentication text MYSECRET
 ```
 
 **3. VRRPv3 Specific Setup (IPv4 & IPv6 Support):**
 *Authentication was removed in VRRPv3. Requires global activation first.*
 
-```cisco
+```
 ! 1. Globally enable VRRPv3 features
 SW(config)# fhrp version vrrp v3
 
@@ -198,21 +218,16 @@ SW(config-if-vrrp)# track 5 decrement 60
 
 **4. Verification:**
 
-```cisco
+```
 SW# show vrrp
 SW# show vrrp brief
-SW# show vrrp interface Vlan 20
-SW# show fhrp version
 ```
-
----
 
 ## 3. GLBP (Gateway Load Balancing Protocol)
 
 GLBP is a Cisco-proprietary protocol offering both redundancy and **active load balancing**.
 
 * **AVG (Active Virtual Gateway):** Manages the group, replies to ARP, assigns MACs.
-
 * **AVF (Active Virtual Forwarder):** The actual routers forwarding the traffic.
 
 ### GLBP Load Balancing Methods
@@ -224,7 +239,7 @@ GLBP is a Cisco-proprietary protocol offering both redundancy and **active load 
 ### GLBP States Table (AVG Roles)
 
 | State | Description | 
- | ----- | ----- | 
+| ----- | ----- | 
 | **Disabled** | GLBP is not configured or the interface is disconnected. | 
 | **Initial** | Interface is up, GLBP is starting initialization. | 
 | **Listen** | Receiving Hello packets. Ready to switch to Speak if current AVG fails. | 
@@ -234,6 +249,13 @@ GLBP is a Cisco-proprietary protocol offering both redundancy and **active load 
 
 * **Virtual MAC Format:** `0007.b400.XXYY` (XX = group, YY = AVF number).
 
+### MAC Management & Failover in GLBP
+
+Unlike HSRP/VRRP, GLBP uses *multiple* Virtual MACs. The AVG assigns a unique MAC to each AVF.
+
+* **If an AVF fails:** Another active AVF will temporarily take over the failed router's Virtual MAC (in addition to its own) and send a **GARP**. This ensures client PCs pointing to the failed MAC do not drop their connections. Meanwhile, the AVG stops assigning the failed MAC to any new ARP requests.
+* **If the AVG fails:** The Standby AVG takes over the process of answering ARPs and managing the MAC address assignments, without disrupting the AVFs.
+
 ### GLBP Configuration Examples
 
 For these examples, we will use **GLBP Group 30** on **VLAN 30**.
@@ -241,12 +263,11 @@ For these examples, we will use **GLBP Group 30** on **VLAN 30**.
 **1. Basic Setup & AVG Election:**
 *Preemption is OFF by default. Priority determines the AVG.*
 
-```cisco
+```
 SW(config)# interface Vlan 30
 
-! Assign Virtual IP (Secondary optional)
+! Assign Virtual IP
 SW(config-if)# glbp 30 ip 172.16.30.254
-SW(config-if)# glbp 30 ip 172.16.30.253 secondary
 
 ! Set priority to 110 (to win the AVG election)
 SW(config-if)# glbp 30 priority 110
@@ -257,7 +278,7 @@ SW(config-if)# glbp 30 preempt delay minimum 20
 
 **2. Load Balancing Configuration:**
 
-```cisco
+```
 ! Set load balancing to round-robin, weighted, or host-dependent
 SW(config-if)# glbp 30 load-balancing weighted
 ```
@@ -265,50 +286,33 @@ SW(config-if)# glbp 30 load-balancing weighted
 **3. AVF Weighting (Who actually forwards traffic):**
 *Weighting determines if a router can act as an AVF.*
 
-```cisco
+```
 ! Set max weight to 100. Stop forwarding if it drops below 80. Resume at 95.
 SW(config-if)# glbp 30 weighting 100 lower 80 upper 95 
 
 ! Track an interface. If it goes down, decrease weight by 30
 SW(config-if)# glbp 30 weighting track 2 decrement 30 
-
-! Allow this router to preempt another AVF if its weight is higher (wait 10 seconds)
-SW(config-if)# glbp 30 forwarder preempt delay minimum 10
 ```
 
 **4. Timers & Authentication:**
+*Default Hellos are 3s, Hold time is 10s.*
 
-```cisco
+```
 ! Set Hellos to 3s and Hold to 10s (or msec)
 SW(config-if)# glbp 30 timers 3 10
-SW(config-if)# glbp 30 timers msec 200 msec 750
 
-! Redirect Timers: 600s wait before redirecting, 7200s valid for old MAC
-SW(config-if)# glbp 30 timers redirect 600 7200
-```
-
-- The redirect-time specifies how long the AVG waits before redirecting hosts to a different virtual MAC address when a forwarding path changes. The timeout specifies how long the old virtual MAC address remains valid after the redirect. During this period, another AVF can continue forwarding traffic sent to the old virtual MAC address, allowing hosts that still have the old MAC address in their ARP cache to continue sending traffic without disruption
-
-- When a change occurs in the forwarding path, the AVG waits for the configured redirect timer before redirecting the host to a new virtual MAC address. After the redirect, the old virtual MAC address remains valid for the configured timeout period, allowing another AVF to continue forwarding traffic destined for the old MAC address while hosts that still have the old MAC address in their ARP cache transition to the new one. The timeout is not used to apply the new MAC address; it is used to keep the old MAC address valid temporarily to prevent traffic disruption.
-
-```cisco
 ! Authentication options
-SW(config-if)# glbp 30 authentication text MYSECRET
 SW(config-if)# glbp 30 authentication md5 key-string Cisco123!
-SW(config-if)# glbp 30 authentication md5 key-chain MYCHAIN
 ```
 
 **5. Verification:**
 
-```cisco
+```
 SW# show glbp
 SW# show glbp brief
-SW# show glbp Vlan 30
 ```
 
----
-
-## ⚠️ Crucial Design Rule: FHRP & STP Alignment
+## Crucial Design Rule: FHRP & STP Alignment
 
 When utilizing Layer 2 infrastructure for FHRP gateways, **STP (Spanning Tree Protocol)** is running to prevent loops.
 
