@@ -4,13 +4,13 @@ Personal notes on everything new I learn - written to be clear, complete, and se
 
 ## How It Is Organized
 
-Each section covers one domain. Inside a section, every topic gets its own folder with a `README.md` note (and optional extras such as lab files):
+Each section covers one domain (networking, English, ...). Every topic gets its own folder, and the note itself is always a `README.md`. Any extra material a topic needs lives next to it - a topic can be just a single note, or carry whatever supports it (labs, exercises, PDFs, ...):
 
 ```
 <Section>/
   <Topic>/
     README.md      <- the note itself
-    Labs/          <- lab files + guides (when available)
+    <extras>/      <- only if the topic needs it
 ```
 
 ## Sections
