@@ -50,7 +50,7 @@ These are the ports connected to your end devices (PCs, Servers). A Host Port is
 
 ### Step 1: VTP Transparent Mode (Crucial Prerequisite)
 
-Historically, PVLANs require VTP to be set to Transparent mode (or VTP Version 3). If you don't do this, the switch might reject PVLAN commands.
+Historically, PVLANs require VTP to be set to Transparent mode (or VTP Version 3). If you don't do this, the switch might reject PVLAN commands. VTP version 3 supports advertising Private VLAN (PVLAN) information across the VTP domain.
 
 ```
 Switch(config)# vtp mode transparent
