@@ -132,6 +132,8 @@ Router# show vlan access-map
 
 ```
 Router# show vlan filter
+Router# show vlan filter vlan 10
+Router# show vlan filter access-map SECURE_VLAN10
 ```
 
 **Check statistics for matched packets (Available on newer switches and Nexus platforms):**
