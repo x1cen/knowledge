@@ -34,7 +34,6 @@ Router(config-ip-sla)# icmp-echo 8.8.8.8 source-interface GigabitEthernet0/1
 Router(config-ip-sla-echo)# frequency 10
 Router(config-ip-sla-echo)# timeout 2000
 Router(config-ip-sla-echo)# exit
-
 ```
 
 ### Step 2: Schedule the IP SLA
@@ -43,7 +42,6 @@ The operation we just created is sitting there doing nothing. We need to schedul
 
 ```
 Router(config)# ip sla schedule 1 life forever start-time now
-
 ```
 
 ### Step 3: Tie the IP SLA to a Track Object
@@ -52,7 +50,6 @@ We create Track object 10 to keep an eye on IP SLA 1. If the ping succeeds, Trac
 
 ```
 Router(config)# track 10 ip sla 1 reachability
-
 ```
 
 ### Step 4: Apply the Track Object to the Routing Table
@@ -62,7 +59,6 @@ Now we write our default routes. The primary route uses the track object. The ba
 ```
 Router(config)# ip route 0.0.0.0 0.0.0.0 198.51.100.1 track 10
 Router(config)# ip route 0.0.0.0 0.0.0.0 203.0.113.1 10
-
 ```
 
 > [Note] Integration with FHRP: You can use this exact same track object in HSRP, VRRP, or GLBP!
@@ -78,7 +74,6 @@ Before you do anything at the branch, you must tell the HQ router to act as a re
 
 ```
 HQ-Router(config)# ip sla responder udp-echo port 5000
-
 ```
 
 ### Step 2: Configure the Source Operation (Branch Router)
@@ -90,7 +85,6 @@ Branch-Router(config)# ip sla 2
 Branch-Router(config-ip-sla)# udp-jitter 10.0.0.1 5000 source-ip 192.168.1.1
 Branch-Router(config-ip-sla-jitter)# frequency 30
 Branch-Router(config-ip-sla-jitter)# exit
-
 ```
 
 ### Step 3: Schedule the Operation
@@ -99,7 +93,6 @@ Just like before, we start the operation immediately.
 
 ```
 Branch-Router(config)# ip sla schedule 2 life forever start-time now
-
 ```
 
 ## 5. Monitoring IP SLA with NMS Tools (SolarWinds, Zabbix, PRTG)
@@ -127,7 +120,6 @@ Router(config)# snmp-server host 10.10.10.50 version 2c MY-MONITOR
 
 ! Enable SNMP traps specifically for IP SLA (RTTMON)
 Router(config)# snmp-server enable traps rtr
-
 ```
 
 ### Step 2: Triggering the Alert (Reaction Configuration)
@@ -137,7 +129,6 @@ Now, we tell the router to generate a trap if IP SLA 1 fails (like when the ping
 ```
 ! If SLA 1 times out, trigger an instant SNMP trap
 Router(config)# ip sla reaction-configuration 1 react timeout action-type trapOnly
-
 ```
 
 Now, if your WAN drops, your router instantly fires off an SNMP Trap to your dashboard, triggering your alarms or email notifications immediately!
@@ -150,7 +141,6 @@ How do we know if it is actually working? Use these commands to check what is go
 
 ```
 Router# show ip sla summary
-
 ```
 
 **Dig into the detailed statistics (Successes, failures, and exact jitter/delay numbers):**
@@ -166,12 +156,10 @@ Router# show ip sla statistics 2
 ```
 Router# show track
 Router# show track 10
-
 ```
 
 **Verify the parameters you configured for your IP SLA:**
 
 ```
 Router# show ip sla configuration
-
 ```
