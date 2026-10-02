@@ -148,7 +148,6 @@ Router# show ip sla summary
 ```
 Router# show ip sla statistics
 Router# show ip sla statistics 2
-
 ```
 
 **Check the status of your Track objects (Is it UP or DOWN? When did it last change state?):**
