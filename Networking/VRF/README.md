@@ -38,6 +38,8 @@ Before jumping into configurations, it is crucial to know that Cisco has two dif
 
 **Scenario:** You have an Enterprise Edge router connecting to a Core Switch. You need to completely separate the **HR** department traffic from the **GUEST** traffic. There is NO MPLS and NO BGP here.
 
+> **📌 Note:** In this scenario, we isolated the traffic between the VRFs by using subinterfaces. We could achieve the same result by configuring two separate connections between the two devices, but that approach would require two physical links, occupying a total of four ports.
+
 ### Step 1: Define the VRFs
 
 **Option A: Modern Syntax (IPv4 & IPv6 - Recommended)**
